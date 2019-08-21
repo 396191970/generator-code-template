@@ -1,0 +1,9 @@
+*.iml
+target
+.idea/
+.settings/
+.classpath
+.project
+conf/
+.gitlab-ci.yml
+*.log

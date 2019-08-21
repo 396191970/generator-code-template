@@ -1,0 +1,12 @@
+[
+  {
+    "title": "根据表生成",
+    "icon": "&#xe641;",
+    "href": "/generator"
+  },
+  {
+    "title": "生成kafka模板",
+    "icon": "&#xe641;",
+    "href": "/kafka"
+  }
+]

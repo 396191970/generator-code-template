@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="10 seconds">
+
+    <springProperty scope="context" name="springAppName"
+                    source="spring.application.name"/>
+
+    <springProperty scope="context" name="logPath"
+                    source="logPath" defaultValue="../logs/"/>
+
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%date [%X{X-B3-TraceId:-}] [%X{X-B3-ParentSpanId:-}] [%X{X-B3-SpanId:-}] [%thread] [%-5level] [%logger{36}] [%M] [%line] => %msg%n"/>
+
+
+    <!--生产环境去掉控制台输出-->
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <withJansi>true</withJansi>
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>utf8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="dailyRollingFileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <File>${logPath}${springAppName}.log</File>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <FileNamePattern>${logPath}${springAppName}.%d{yyyy-MM-dd}-%i.log</FileNamePattern>
+            <maxHistory>30</maxHistory>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>100MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <Pattern>${CONSOLE_LOG_PATTERN}</Pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+    </appender>
+    <appender name ="ASYNC_FILE" class= "ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>1024</queueSize>
+        <includeCallerData>true</includeCallerData>
+        <appender-ref ref = "dailyRollingFileAppender"/>
+    </appender>
+
+    <!--    打印controller请求返回日志-->
+    <logger name="org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod" level="TRACE"/>
+    <!--    打印事物日志-->
+    <logger name="org.springframework.orm.jpa.JpaTransactionManager" level="DEBUG"/>
+    <!-- show parameters for hibernate sql 专为 Hibernate 定制 -->
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE" />
+    <logger name="org.hibernate.type.descriptor.sql.BasicExtractor" level="DEBUG" />
+    <logger name="org.hibernate.SQL" level="DEBUG" />
+    <logger name="org.hibernate.engine.QueryParameters" level="DEBUG" />
+    <logger name="org.hibernate.engine.query.HQLQueryPlan" level="DEBUG" />
+    <root level="info">
+        <appender-ref ref="stdout"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </root>
+
+    <springProfile name="dev">
+        <logger name="com.jlpay" level="DEBUG"/>
+        <root level="info">
+            <appender-ref ref="stdout"/>
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+    </springProfile>
+    <springProfile name="kx.verify">
+        <logger name="com.jlpay" level="DEBUG"/>
+        <root level="info">
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+    </springProfile>
+
+    <!-- kx.prod对应与你要生效的环境，启动脚本start.sh 里面制定的PROFILES_ACTIVE=dev -->
+    <springProfile name="kx.prod">
+        <logger name="com.jlpay" level="DEBUG"/>
+        <root level="info">
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+    </springProfile>
+
+    <logger name="com.jlpay" level="DEBUG"/>
+    <logger name="org.springframework.kafka.core" level="TRACE"/>
+
+
+</configuration>
+

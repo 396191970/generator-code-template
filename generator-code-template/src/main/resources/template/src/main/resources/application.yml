@@ -1,0 +1,62 @@
+server:
+  port: 8000
+spring:
+  application:
+    name: kafka-template
+  kafka:
+    producer:
+      bootstrap-servers: 172.20.21.112:9091,172.20.21.113:9092,172.20.21.114:9093
+      # 累积消息触发发送的字节数值大性能好 ， 实时性差，可靠性差. 详见org.apache.kafka.clients.producer.ProducerConfig.BATCH_SIZE_DOC
+      # 和linger.ms属性只有有一个条件满足就会发送消息
+      batch-size: 100
+      # 消息的缓存容量  值不可低于batch-size.
+      # 一定要比最大的消息大， 不然消息发布出去  消息长度超过此值会发送失败并爆出RecordTooLargeException
+      buffer-memory: 102400
+      # 指定消息key和消息体的编解码方式
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # 重试次数
+      retries: 0
+      topic: test-topic-template
+      acks: all
+      properties:
+        # 累积消息触发发送的毫秒数(默认值0) 值大性能好实时性差. 详见org.apache.kafka.clients.producer.ProducerConfig.LINGER_MS_DOC
+        # 和batch-size属性只有有一个条件满足就会发送消息
+        linger.ms: 5
+        compression.type: gzip
+        #  指定了 生产者在 发送数据时 等待服务器返回响应的 时间，
+        request.timeout.ms: 10000
+        #  指定了 生产者在 获取元 数据（ 比如目标分区的 首领是 谁） 时等待服务器返回响应的 时间。 如果等待响应超时， 那么生产者要么重试发送数据， 要么返回一个错误（ 抛出异常或 执行回 调）。
+        metadata.fetch.timeout.ms: 10000
+        #  指定了 broker等待同步副本返回返回消息确认的 时间， 与asks的 配置相 匹配—— 如果在 指定时间内 没有收到同步副本的 确认， 那么broker就会返回一个错误。
+        timeout.ms: 10000
+        #  控制可靠性的关键  是否同步等待服务端应答数  0不等待1 learder应答  all  全部副本应答
+
+    consumer:
+      bootstrap-servers: 172.20.21.112:9091,172.20.21.113:9092,172.20.21.114:9093
+      # 如果在消息处理完成前就提交了offset，那么就有可能造成数据的丢失。由于Kafkaconsumer默认是自动提交位移的，
+      # 所以在后台提交位移前一定要保证消息被正常处理了，因此不建议采用很重的处理逻辑，如果处理耗时很长，
+      # 如需手动提交则改为false ，对应ack-mode也得改为手动模式
+      enable-auto-commit: true
+      # earliest获取log头部的数据(可能有重复), latest获取log尾部的数据（可能会丢失消息）
+      auto-offset-reset: earliest
+      # 指定默认消费者groupid(会被KafkaListener注解的groupId属性覆盖) 同一个groupid只有一条消息只有一个消费者可以收到消息 ；
+      # 不同同groupid只有一条消息每个group下面都会有一个消费者可以收到消息
+      group-id: test-topic-template-group2
+      topics: test-topic-template
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # 每次最多拉几条消息  值大性能好，
+      max-poll-records: 10
+      properties:
+        max.poll.interval.ms: 600000  #消费者每次拉消息的间隔时间， 如果大于这个时间消费者分区会重新分配
+    listener:
+      # 指定listener容器中的线程数，用于提高并发量.  一个线程对应一个消费者， topic分片会均匀分配到消费者消费者数量多余分区数量没用
+      concurrency: 1
+      # 提交offset模式，
+      # 手动提交设置enable-auto-commit为 false (若为true则无法启动且抛出IllegalArgumentException), 并在KafkaListener注解的方法中引入org.springframework.kafka.support.Acknowledgment参数, 调用ack方法即可手动提交
+      # MANUAL_IMMEDIATE会立刻提交, MANUAL是批量处理的
+      # reference: https://segmentfault.com/a/1190000011541255
+      ack-mode: record
+
+
